@@ -14,6 +14,12 @@ git status --short
 
 로그인 계정과 프로젝트 경로가 의도한 값인지 확인한다. 인증 토큰이나 로그인 코드를 문서·채팅·Git에 붙여 넣지 않는다.
 
+이 PC에서 `detected dubious ownership` 오류가 나면 Codex 작업 계정이 생성한 저장소와 사용자 계정이 달라서다. 현재 위치가 이 프로젝트 ROOT인지 확인한 후 아래처럼 **현재 저장소만** 신뢰 경로로 등록한다. 모든 경로를 허용하는 `*`는 사용하지 않는다. 다른 PC에서 직접 clone한 저장소에는 보통 필요하지 않다.
+
+```powershell
+git config --global --add safe.directory ((Get-Location).Path.Replace('\','/'))
+```
+
 ```powershell
 gh repo create product-forecast --public --source . --remote origin --push --description "Product roadmap management with Next.js, FastAPI and DuckDB"
 gh repo view --json url,visibility
