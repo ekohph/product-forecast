@@ -7,11 +7,15 @@ import { PhaseEditor } from "./phase-editor";
 import { RoadmapComparison } from "./roadmap-comparison";
 import { TimelineView } from "./timeline-view";
 import { PortfolioTimeline } from "./portfolio-timeline";
+import { FeaturesPanel } from "./features-panel";
 import { defaultTimelineSizes } from "./roadmap-timeline";
-import { RoadmapShare } from "./roadmap-share";
 import {confirmUnsavedChanges, installUnsavedNavigationGuard} from "./unsaved-changes";
 
-const tabs = [{id: "view", name: "조회"}, {id: "edit", name: "편집"}, {id: "compare", name: "비교"}, {id: "portfolio", name: "모아보기"}];
+const tabGroups = [
+  {name: "제품별", tabs: [{id: "view", name: "조회"}, {id: "edit", name: "편집"}, {id: "compare", name: "비교"}]},
+  {name: "전체 제품", tabs: [{id: "portfolio", name: "제품 모아보기"}, {id: "features", name: "Features"}]},
+];
+const tabs = tabGroups.flatMap(group => group.tabs);
 
 export function RoadmapWorkspace() {
   const [tab, setTab] = useState("view");
@@ -29,21 +33,21 @@ export function RoadmapWorkspace() {
     return () => { window.removeEventListener("focus", update); window.clearInterval(timer); };
   }, []);
 
-  return <SelectionBar confirmLeave={confirmLeave} sharedLink omitProduct={tab === "portfolio"}>{(selection, options, ready, select, manageBuilds) => <section className="roadmap-workspace" aria-label="제품 로드맵">
-    <div className="roadmap-toolbar">
+  return <SelectionBar confirmLeave={confirmLeave} sharedLink hideSelectors={tab === "features"} omitProduct={tab === "portfolio"}>{(selection, options, ready, select, manageBuilds) => <section className="roadmap-workspace" aria-label="제품 로드맵">
     <div className="roadmap-tabs" role="tablist" aria-label="로드맵 보기 방식">
-      {tabs.map((item, index) => <button
+      {tabGroups.map(group => <div key={group.name} className="roadmap-tab-group" role="presentation">
+        {group.tabs.map(item => <button
         key={item.id} id={`tab-${item.id}`} role="tab" aria-selected={tab === item.id}
         aria-controls={`panel-${item.id}`} tabIndex={tab === item.id ? 0 : -1}
         onClick={() => {if (item.id !== tab && confirmLeave()) setTab(item.id);}} onKeyDown={event => {
           if (!["ArrowLeft", "ArrowRight", "Home", "End"].includes(event.key)) return;
           event.preventDefault();
+          const index = tabs.indexOf(item);
           const next = tabs[event.key === "Home" ? 0 : event.key === "End" ? tabs.length - 1 : (index + (event.key === "ArrowRight" ? 1 : -1) + tabs.length) % tabs.length].id;
           if (next !== tab && !confirmLeave()) return;
           setTab(next); document.getElementById(`tab-${next}`)?.focus();
-        }}>{item.name}</button>)}
-    </div>
-    {tab !== "portfolio" && <RoadmapShare key={JSON.stringify([selection.product, selection.phase, selection.version])} selection={selection} ready={ready} />}
+        }} aria-label={`${group.name} ${item.name}`}>{item.name}</button>)}
+      </div>)}
     </div>
     {tabs.filter(item => item.id === "view" || item.id === "edit").map(panel => <div key={panel.id} id={`panel-${panel.id}`} role="tabpanel" aria-labelledby={`tab-${panel.id}`} hidden={tab !== panel.id} tabIndex={0}>
       {tab === panel.id && (panel.id === "view" ? <TimelineView key={JSON.stringify([selection.product, selection.phase, selection.version])} selection={selection} options={options} ready={ready} months={months} sizes={timelineSizes} onSizes={setTimelineSizes} /> :
@@ -56,6 +60,9 @@ export function RoadmapWorkspace() {
       {tab === "portfolio" && <PortfolioTimeline key={JSON.stringify([selection.phase, selection.version])}
         products={options.product} phase={selection.phase} version={selection.version} ready={ready}
         months={months} sizes={timelineSizes} onSizes={setTimelineSizes} />}
+    </div>
+    <div id="panel-features" role="tabpanel" aria-labelledby="tab-features" hidden={tab !== "features"} tabIndex={0}>
+      {tab === "features" && <FeaturesPanel products={options.product} onDirty={onDirty} />}
     </div>
   </section>}</SelectionBar>;
 }

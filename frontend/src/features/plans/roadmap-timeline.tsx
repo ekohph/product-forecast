@@ -47,7 +47,8 @@ export function RoadmapTimeline({months, items, build, compact = false, showBuil
       const left = Math.max(0, Math.min(x - textWidth / 2, width - textWidth));
       return {name, left, row: place(nameRows, left, left + textWidth)};
     });
-    return {...tick, x, labelX, dateRow, names};
+    const tooltip = [tick.date, ...tick.events, ...tick.milestones.map(item => item.content).filter(Boolean)].join("\n");
+    return {...tick, x, labelX, dateRow, names, tooltip};
   });
   const ranges = items.filter(item => item.kind !== "milestone").flatMap(item => {
     const position = itemPosition(item, months);
@@ -76,11 +77,10 @@ export function RoadmapTimeline({months, items, build, compact = false, showBuil
     <div ref={container} className="timeline-plot"><svg width="100%" height={height} role="img" aria-label={`${build} 일정과 마일스톤 타임라인`}>
       <line x1={inset} y1={lineY} x2={width - inset} y2={lineY} className="timeline-axis" />
       {points.map(point => <g key={point.date}>
-        <title>{[point.date, ...point.events, ...point.milestones.map(item => item.content).filter(Boolean)].join("\n")}</title>
+        <title>{point.tooltip}</title>
         <line x1={point.x} x2={point.x} y1={lineY - 7} y2={lineY + 7} className="timeline-tick" />
         {(Math.abs(point.labelX - point.x) > 4 || rangeAbove > 0) && <line x1={point.x} y1={lineY - 7} x2={point.labelX} y2={lineY - rangeAbove - 10 - point.dateRow * rowStep} className="timeline-tick" strokeDasharray="3 3" />}
         {point.label && <text x={point.labelX} y={lineY - rangeAbove - 12 - point.dateRow * rowStep} textAnchor="middle" className="timeline-date" style={{fontSize: sizes.date}}>{point.label}</text>}
-        {point.milestones.length > 0 && <circle cx={point.x} cy={lineY} r={sizes.circle / 2} className={`timeline-milestone${today && point.date < today ? " past" : " upcoming"}`} />}
         {point.names.map((name, index) => <text key={point.milestones[index].id} x={name.left} y={namesY + name.row * nameStep} className="timeline-name" style={{fontSize: sizes.item}}>{name.name}</text>)}
       </g>)}
       {ranges.map(({item, name, start, end, center}, index) => {
@@ -100,6 +100,11 @@ export function RoadmapTimeline({months, items, build, compact = false, showBuil
         </g>;
       })}
       {compact && !ticks.length && <text x={inset} y={lineY + nameOffset} className="timeline-empty">{emptyLabel}</text>}
+      {points.filter(point => point.milestones.length > 0).map(point =>
+        <circle key={point.date} cx={point.x} cy={lineY} r={sizes.circle / 2} className={`timeline-milestone${today && point.date < today ? " past" : " upcoming"}`}>
+          <title>{point.tooltip}</title>
+        </circle>
+      )}
     </svg></div>
     {compact && showBuildLabel && <h3 className="timeline-build-name" style={{marginTop: lineY - 9}} title={build}>{build}</h3>}
   </div>;

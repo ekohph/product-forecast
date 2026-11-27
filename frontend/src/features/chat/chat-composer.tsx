@@ -26,8 +26,10 @@ const documentFor = (text: string) => schema.node("doc", null, text.split(/\r\n?
 type Attachment = {url: string; name: string};
 type ChatMessage = {text: string; images: Attachment[]};
 
-export function ChatComposer() {
+export function ChatComposer({showSample = false}: {showSample?: boolean}) {
   const mount = useRef<HTMLDivElement>(null);
+  const transcript = useRef<HTMLDivElement>(null);
+  const followLatest = useRef(true);
   const viewRef = useRef<EditorView | null>(null);
   const justComposedEnter = useRef(false);
   const picker = useRef<HTMLInputElement>(null);
@@ -38,6 +40,12 @@ export function ChatComposer() {
   const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasText, setHasText] = useState(false);
   const [ready, setReady] = useState(false);
+
+  function scrollToLatest() {
+    const log = transcript.current;
+    if (log && followLatest.current) log.scrollTop = log.scrollHeight;
+  }
+  useEffect(scrollToLatest, [messages]);
 
   function addImages(files: File[]) {
     if (!files.length) return;
@@ -66,6 +74,7 @@ export function ChatComposer() {
     const text = asText(view.state.doc).trim();
     const attachments = draftImages.current;
     if (!text && !attachments.length) return;
+    followLatest.current = true;
     setMessages(items => [...items, {text, images: attachments}]);
     draftImages.current = [];
     setImages([]);
@@ -84,7 +93,7 @@ export function ChatComposer() {
     const view = new EditorView(mount.current, {
       state: createState(),
       attributes: {
-        role: "textbox", "aria-label": "테스트 메시지", "aria-multiline": "true",
+        role: "textbox", "aria-label": "메시지 입력", "aria-multiline": "true",
         "aria-describedby": "chat-key-hint", spellcheck: "false",
       },
       handleDOMEvents: {
@@ -103,9 +112,9 @@ export function ChatComposer() {
         drop(_editor, event) {event.preventDefault(); return true;},
       },
       handleKeyDown(editor, event) {
-        if (event.key !== "Enter" || event.altKey || event.ctrlKey || event.metaKey) return false;
+        if (event.key !== "Enter" || event.ctrlKey || event.metaKey) return false;
         if (justComposedEnter.current || isComposingEnter(event, editor.composing)) return false;
-        if (event.shiftKey) return splitBlock(editor.state, editor.dispatch, editor);
+        if (event.altKey || event.shiftKey) return splitBlock(editor.state, editor.dispatch, editor);
         submit(editor);
         return true;
       },
@@ -125,16 +134,17 @@ export function ChatComposer() {
     };
   }, []);
 
-  return <section className="chat-demo" aria-label="메시지 입력 테스트">
-    <div className="chat-transcript" role="log" aria-live="polite" aria-label="이 화면에서 입력한 메시지">
-      {messages.length ? <ol>
-        {messages.map((message, i) => <li key={i}><span>내 입력</span>
+  return <section className="chat-demo" aria-label="채팅">
+    <div ref={transcript} className="chat-transcript" role="log" tabIndex={0} aria-live="polite" aria-label="대화 기록"
+      onScroll={event => {const log = event.currentTarget; followLatest.current = log.scrollHeight - log.scrollTop - log.clientHeight < 8;}}>
+      {messages.length > 0 && <ol>
+        {messages.map((message, i) => <li key={i}>
           {message.text && <p>{message.text}</p>}
           {!!message.images.length && <div className="chat-sent-images">
-            {message.images.map(image => <img key={image.url} src={image.url} alt={image.name} />)}
+            {message.images.map(image => <img key={image.url} src={image.url} alt={image.name} onLoad={scrollToLatest} />)}
           </div>}
         </li>)}
-      </ol> : <div className="chat-empty"><h2>입력 테스트</h2><p>예시 문장을 넣거나 직접 입력해 보세요.</p></div>}
+      </ol>}
     </div>
     <div className="chat-compose-card">
       {!!images.length && <ul className="chat-image-previews" aria-label="첨부 이미지 미리보기">
@@ -154,14 +164,14 @@ export function ChatComposer() {
         }} />
         <button type="button" className="secondary-button chat-add-image" aria-label="이미지 추가"
           title="이미지 추가" disabled={!ready} onClick={() => picker.current?.click()}>+</button>
-        <button type="button" className="secondary-button" disabled={!ready || hasText} onClick={() => {
+        {showSample && <button type="button" className="secondary-button" disabled={!ready || hasText} onClick={() => {
           const view = viewRef.current;
           if (!view || view.composing) return;
           const doc = documentFor(sample);
           view.dispatch(view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content));
           view.focus();
-        }}>예시 문장 넣기</button>
-        <p id="chat-key-hint">Enter 전송 · Shift+Enter 줄바꿈 · Ctrl+V 이미지 붙여넣기</p>
+        }}>예시 문장 넣기</button>}
+        <p id="chat-key-hint">Enter 전송 · Alt+Enter 줄바꿈 · Ctrl+V 이미지 붙여넣기</p>
         <button type="button" disabled={!hasText && !images.length} onClick={() => {if (viewRef.current) submit(viewRef.current);}}>전송</button>
       </div>
     </div>

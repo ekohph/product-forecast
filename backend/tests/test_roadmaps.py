@@ -32,6 +32,19 @@ def database(tmp_path):
     app.dependency_overrides.clear()
 
 
+def test_shared_features_persist_product_assignments_and_reject_stale_edits(database):
+    client = TestClient(app)
+    url = f"{PREFIX}/features"
+    empty = client.get(url).json()
+    assert empty == {"revision": 0, "features": []}
+    feature = {"id": "f1", "name": "검토", "description": "", "products": ["A", "B"]}
+    saved = client.put(url, json={**empty, "features": [feature]})
+    assert saved.status_code == 200
+    assert saved.json() == {"revision": 1, "features": [feature]}
+    assert client.put(url, json=empty).status_code == 409
+    assert client.get(url).json() == saved.json()
+
+
 def test_saved_roadmap_is_visible_to_next_client_and_process(database):
     with TestClient(app) as first:
         assert first.get(PREFIX, params=KEY).json() == {"revision": 0, "data": None, "updated_at": None}

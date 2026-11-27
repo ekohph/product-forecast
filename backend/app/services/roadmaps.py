@@ -9,7 +9,7 @@ import duckdb
 
 from app.schemas.roadmaps import RoadmapCatalog, RoadmapKey, RoadmapResponse, RoadmapSave
 from app.schemas.roadmaps import PhaseVersion, VersionCreate, VersionInfo, VersionDeletion, VersionDeletionPreview, PhaseAdvance, VersionNote
-from app.schemas.roadmaps import ProductBuilds
+from app.schemas.roadmaps import ProductBuilds, FeatureList
 
 _LOCK = RLock()
 
@@ -52,6 +52,19 @@ class RoadmapStore:
     @staticmethod
     def params(key: RoadmapKey):
         return [key.product, key.build, key.phase, key.version]
+
+    def features(self, update: FeatureList | None = None) -> FeatureList:
+        with self.connect() as db:
+            db.execute("CREATE TABLE IF NOT EXISTS feature_catalog (id INTEGER PRIMARY KEY, payload VARCHAR NOT NULL)")
+            row = db.execute("SELECT payload FROM feature_catalog WHERE id = 1").fetchone()
+            current = FeatureList.model_validate_json(row[0]) if row else FeatureList(revision=0, features=[])
+            if update is None:
+                return current
+            if current.revision != update.revision:
+                raise RoadmapConflict("기능 목록이 변경되었습니다. 최신 목록을 다시 불러와 주세요.")
+            saved = FeatureList(revision=current.revision + 1, features=update.features)
+            db.execute("INSERT OR REPLACE INTO feature_catalog VALUES (1, ?)", [saved.model_dump_json()])
+            return saved
 
     @staticmethod
     def response(row):

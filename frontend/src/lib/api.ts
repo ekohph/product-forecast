@@ -33,6 +33,10 @@ export const previewVersionDeletion = (phase: string, version: string) => reques
 export const saveVersionContent = (phase: string, version: string, content: string, previous_content: string) => request<{content: string; updated_at: string}>("/roadmaps/versions/content", "PATCH", {phase, version, content, previous_content});
 export const deletePhaseVersion = (phase: string, version: string, token: string, confirmed: boolean) => request<{ok: boolean}>("/roadmaps/versions", "DELETE", {phase, version, token, confirmed});
 export const getRoadmap = (identity: RoadmapIdentity) => request<RoadmapRecord>(`/roadmaps?${new URLSearchParams(identity)}`);
+export type ProductFeature = {id: string; name: string; description: string; products: string[]};
+export type FeatureList = {revision: number; features: ProductFeature[]};
+export const getFeatures = () => request<FeatureList>("/roadmaps/features");
+export const saveFeatures = (data: FeatureList) => request<FeatureList>("/roadmaps/features", "PUT", data);
 export const saveRoadmap = (identity: RoadmapIdentity, data: RoadmapTableData, revision: number) => request<RoadmapRecord>(`/roadmaps?${new URLSearchParams(identity)}`, "PUT", {data, revision});
 export const createPlan = (data: {name: string; product_name: string}) => request<Plan>("/plans", "POST", data);
 export const addVersion = (id: string, data: {name: string; content: string}) => request<Plan>(`/plans/${id}/versions`, "POST", data);

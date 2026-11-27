@@ -108,6 +108,24 @@ class ProductCreate(StrictModel):
     product: Name
 
 
+class ProductFeature(StrictModel):
+    id: Name
+    name: Name
+    description: str = Field(max_length=2000)
+    products: list[Name]
+
+
+class FeatureList(StrictModel):
+    revision: int = Field(ge=0)
+    features: list[ProductFeature]
+
+    @model_validator(mode="after")
+    def unique_ids(self):
+        if len({feature.id for feature in self.features}) != len(self.features):
+            raise ValueError("기능 ID가 중복되었습니다.")
+        return self
+
+
 class ProductBuilds(ProductCreate):
     builds: list[Name] = Field(max_length=500)
     previous_builds: list[Name] = Field(max_length=500)

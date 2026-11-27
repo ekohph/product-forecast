@@ -61,7 +61,7 @@ export function PhaseEditor({selection, options, ready, months, onSelect, onDirt
       <button id="edit-build-manager" type="button" className="secondary-button" disabled={!ready || !selection.product} onClick={onManageBuilds}>Build 관리</button></div>
       <div className="phase-heading-actions"><span>{selection.phase || "Phase 없음"} · Version {selection.version}</span>
         <button ref={chatToggle} type="button" className="secondary-button" disabled={!contextReady}
-          aria-expanded={showChat} aria-controls="roadmap-edit-chat" onClick={toggleChat}>편집 채팅</button>
+          aria-expanded={showChat} aria-controls="roadmap-edit-chat" onClick={toggleChat}>채팅으로 편집</button>
         <button type="button" disabled={!canAdvance || !laterPhases.length} title={!laterPhases.length ? "다음 Phase가 없습니다." : "현재 제품의 모든 Build를 다음 Phase에 복사합니다."}
           onClick={() => {setTargetPhase(laterPhases[0]); setError(""); setOpen(true);}}>다음 Phase로 등록</button></div>
     </div>
@@ -72,11 +72,11 @@ export function PhaseEditor({selection, options, ready, months, onSelect, onDirt
       </div>
       <aside id="roadmap-edit-chat" className="roadmap-edit-chat" aria-labelledby="roadmap-edit-chat-title" hidden={!showChat}>
         <div className="roadmap-edit-chat-header">
-          <h3 id="roadmap-edit-chat-title" ref={chatTitle} tabIndex={-1}>편집 채팅</h3>
-          <button type="button" className="secondary-button" aria-label="편집 채팅 닫기" onClick={toggleChat}>닫기</button>
+          <h3 id="roadmap-edit-chat-title" ref={chatTitle} tabIndex={-1}>채팅으로 편집</h3>
+          <button type="button" className="secondary-button" aria-label="채팅으로 편집 닫기" onClick={toggleChat}>닫기</button>
         </div>
         <p className="roadmap-edit-chat-context" aria-label="현재 로드맵">{selection.product} · {selection.phase} · Version {selection.version}</p>
-        <p className="roadmap-edit-chat-note">입력 테스트입니다. 채팅으로 일정이 변경되거나 서버에 저장되지 않습니다.</p>
+        <p className="roadmap-edit-chat-note">이 대화는 현재 화면에만 표시됩니다.</p>
         {chatMounted && <ChatComposer />}
       </aside>
     </div>

@@ -13,7 +13,7 @@ export default function ChatPage() {
       <p className="eyebrow">Product Forecast</p>
       <h1>Chat</h1>
       <p className="intro">입력창 동작을 확인하는 테스트 화면입니다. 입력한 내용은 서버에 보내거나 저장하지 않습니다.</p>
-      <ChatComposer />
+      <ChatComposer showSample />
     </div>
   </ProductShell>;
 }

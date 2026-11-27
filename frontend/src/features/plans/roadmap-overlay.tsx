@@ -70,9 +70,11 @@ export function RoadmapOverlay({baseline, target, inBaseline = true, inTarget = 
           <title>{`${statusLabels[row.status]}\n기준: ${describe(row.before)}\n대상: ${describe(row.after)}`}</title>
           <text x={4} y={y + 4} className="timeline-item-name">{`${statusLabels[row.status]} · ${item.name.length > 12 ? `${item.name.slice(0, 11)}…` : item.name}`}</text>
           <line x1={labelWidth} x2={right} y1={y} y2={y} stroke="#f0f1f3" />
-          {draw(row.before, y, true, row.status)}
+          {row.before?.kind !== "milestone" && draw(row.before, y, true, row.status)}
           {row.before && row.after && row.status === "changed" && (["startDate", "endDate"] as const).map((field, edge) => row.before![field] !== row.after![field] && <line key={field} x1={x(row.before![field])} x2={x(row.after![field])} y1={y + (edge ? 11 : -11)} y2={y + (edge ? 11 : -11)} className="overlay-date-shift" />)}
-          {draw(row.after, y, false, row.status)}
+          {row.after?.kind !== "milestone" && draw(row.after, y, false, row.status)}
+          {row.before?.kind === "milestone" && draw(row.before, y, true, row.status)}
+          {row.after?.kind === "milestone" && draw(row.after, y, false, row.status)}
         </g>;
       })}
     </svg>

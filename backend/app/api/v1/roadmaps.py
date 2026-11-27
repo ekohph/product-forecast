@@ -7,7 +7,7 @@ from fastapi import APIRouter, Depends, HTTPException, Query
 from app.core.config import Settings, get_settings
 from app.schemas.roadmaps import RoadmapCatalog, RoadmapKey, RoadmapResponse, RoadmapSave
 from app.schemas.roadmaps import Name, PhaseVersion, VersionCreate, VersionInfo, VersionDeletion, VersionDeletionPreview, PhaseAdvance, VersionNote
-from app.schemas.roadmaps import ProductCreate, ProductBuilds
+from app.schemas.roadmaps import ProductCreate, ProductBuilds, FeatureList
 from app.services.roadmaps import RoadmapConflict, RoadmapStore
 
 router = APIRouter(prefix="/roadmaps", tags=["roadmaps"])
@@ -31,6 +31,16 @@ def invoke(action):
 @router.get("/catalog", response_model=RoadmapCatalog)
 def catalog(phase: Name | None = None, product: Name | None = None, db: RoadmapStore = Depends(store)):
     return invoke(lambda: db.catalog(phase, product))
+
+
+@router.get("/features", response_model=FeatureList)
+def list_features(db: RoadmapStore = Depends(store)):
+    return invoke(db.features)
+
+
+@router.put("/features", response_model=FeatureList)
+def save_features(request: FeatureList, db: RoadmapStore = Depends(store)):
+    return invoke(lambda: db.features(request))
 
 
 @router.post("/products")
