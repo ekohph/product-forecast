@@ -5,10 +5,11 @@ import type { RoadmapMonth } from "./roadmap-months";
 import { roadmapTimelineTicks, roadmapToday, itemPosition, daysInMonth, type RoadmapItem } from "./roadmap-items";
 import { layoutTimelineLabels, layoutTimelineRanges, timelineLaneOffset } from "./timeline-labels";
 
-export const defaultTimelineSizes = {circle: 12, date: 12, phase: 14, item: 12};
+export const defaultTimelineSizes = {circle: 16, date: 12, phase: 16, item: 12};
 export type TimelineSizes = typeof defaultTimelineSizes;
+const uncustomizedTimelineSizes: TimelineSizes = {...defaultTimelineSizes, circle: 12};
 
-export function RoadmapTimeline({months, items, build, compact = false, showBuildLabel = true, sizes = defaultTimelineSizes}: {months: RoadmapMonth[]; items: RoadmapItem[]; build: string; compact?: boolean; showBuildLabel?: boolean; sizes?: TimelineSizes}) {
+export function RoadmapTimeline({months, items, build, compact = false, showBuildLabel = true, sizes = uncustomizedTimelineSizes}: {months: RoadmapMonth[]; items: RoadmapItem[]; build: string; compact?: boolean; showBuildLabel?: boolean; sizes?: TimelineSizes}) {
   const container = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(600);
   const [today, setToday] = useState("");
