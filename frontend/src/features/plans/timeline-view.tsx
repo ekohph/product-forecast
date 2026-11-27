@@ -5,11 +5,21 @@ import type { RoadmapCatalog, RoadmapIdentity, RoadmapRecord } from "@/types/roa
 import type { RoadmapMonth } from "./roadmap-months";
 import { getRoadmap } from "@/lib/api";
 import { buildProductTimeline } from "./product-timeline";
-import { RoadmapTimeline } from "./roadmap-timeline";
+import { RoadmapTimeline, defaultTimelineSizes, type TimelineSizes } from "./roadmap-timeline";
 import { sortRoadmapItems } from "./roadmap-items";
 import { captureTimelines, downloadTimeline, type TimelineImage } from "./timeline-export";
 
-export function TimelineView({selection, options, ready, months}: {selection: RoadmapIdentity; options: RoadmapCatalog; ready: boolean; months: RoadmapMonth[]}) {
+const sizeControls = [
+  {key: "circle", label: "마일스톤 원", min: 6, max: 22},
+  {key: "date", label: "날짜 글자", min: 8, max: 20},
+  {key: "phase", label: "Phase 글자", min: 10, max: 24},
+  {key: "item", label: "항목 글자", min: 8, max: 20},
+] as const;
+
+export function TimelineView({selection, options, ready, months, sizes, onSizes}: {
+  selection: RoadmapIdentity; options: RoadmapCatalog; ready: boolean; months: RoadmapMonth[];
+  sizes: TimelineSizes; onSizes: (sizes: TimelineSizes) => void;
+}) {
   const [checked, setChecked] = useState<string[]>([]);
   const [preview, setPreview] = useState<TimelineImage | null>(null);
   const [busy, setBusy] = useState(false);
@@ -51,11 +61,25 @@ export function TimelineView({selection, options, ready, months}: {selection: Ro
   const heading = `${product} · ${phase} · Version ${version}`;
   const valid = ready && product && phase && version && months.length;
   return <>
-    <div className="roadmap-heading view-heading"><h2>{product || "제품 없음"}</h2><span>{phase || "Phase 없음"} · Version {version}</span>
+    <div className="roadmap-heading view-heading"><h2>{product || "제품 없음"}</h2><span className="timeline-phase" style={{fontSize: sizes.phase}}>{phase || "Phase 없음"}</span><span>· Version {version}</span>
+      <details className="timeline-display-options">
+        <summary>표시 크기</summary>
+        <div className="timeline-size-controls">
+          {sizeControls.map(({key, label, min, max}) => <label key={key}>
+            <span>{label}</span>
+            <input type="range" aria-label={label} min={min} max={max} value={sizes[key]}
+              onChange={event => onSizes({...sizes, [key]: Number(event.currentTarget.value)})} />
+            <output>{sizes[key]} px</output>
+          </label>)}
+          <button type="button" onClick={() => onSizes(defaultTimelineSizes)}>기본값</button>
+        </div>
+      </details>
       <button type="button" className="timeline-download" disabled={!valid || !exportKeys.length || busy} onClick={async () => {
         if (!root.current || !exportKeys.length) return;
         setError(""); setPreview(null); setBusy(true); dialog.current?.showModal();
-        try {setPreview(await captureTimelines(root.current, exportKeys, heading, exportLabels));}
+        try {setPreview(await captureTimelines(root.current, exportKeys, heading, exportLabels, [
+          {text: product + " · ", size: 16}, {text: phase, size: sizes.phase}, {text: " · Version " + version, size: 16},
+        ]));}
         catch (reason) {setError(reason instanceof Error ? reason.message : "미리보기를 만들지 못했습니다.");}
         finally {setBusy(false);}
       }}>Download</button>
@@ -67,7 +91,7 @@ export function TimelineView({selection, options, ready, months}: {selection: Ro
             onChange={event => setOverviewChecked(event.target.checked)} />
           <span>{product}</span>
         </label>
-        {overviewReady ? <RoadmapTimeline months={timeline.months} items={timeline.items} build={`${product} 전체`} compact showBuildLabel={false} />
+        {overviewReady ? <RoadmapTimeline months={timeline.months} items={timeline.items} build={`${product} 전체`} compact showBuildLabel={false} sizes={sizes} />
           : <div className="timeline-status-row"><p role={failed ? "alert" : "status"}>{failed ? "일부 Build를 불러오지 못해 전체 일정을 표시할 수 없습니다." : "전체 일정을 불러오고 있습니다."}</p></div>}
       </div>
       <label className="timeline-check timeline-check-all">
@@ -82,7 +106,7 @@ export function TimelineView({selection, options, ready, months}: {selection: Ro
           <label className="timeline-check"><input type="checkbox" aria-label={`${build} 타임라인 다운로드 선택`} disabled={!result?.record}
             checked={builds.includes(build)} onChange={event => setChecked(current => event.target.checked ? [...current, build] : current.filter(value => value !== build))} /><span>{build}</span></label>
           {result?.record ? <section className="build-timeline-row" aria-label={`${product} ${build} 타임라인`}>
-            <RoadmapTimeline months={timeline.months} items={sortRoadmapItems(timeline.itemsByBuild.get(build) ?? [], result.record.data?.sort ?? "Start Date (Ascending)")} build={build} compact showBuildLabel={false} />
+            <RoadmapTimeline months={timeline.months} items={sortRoadmapItems(timeline.itemsByBuild.get(build) ?? [], result.record.data?.sort ?? "Start Date (Ascending)")} build={build} compact showBuildLabel={false} sizes={sizes} />
           </section> : <section className="timeline-status-row" aria-label={`${build} 타임라인 상태`}>
             <div><p role={result?.error ? "alert" : "status"}>{result?.error ?? "저장된 로드맵을 불러오고 있습니다."}</p>
               {result?.error && <button type="button" onClick={() => setAttempt(current => current + 1)}>다시 시도</button>}</div>

@@ -96,6 +96,13 @@ form + h3 { margin-top: 28px; }
 .timeline-plot { min-width: 0; }
 .roadmap-heading.view-heading { justify-content: flex-start; gap: 12px; }
 .timeline-download { margin-left: auto; }
+.timeline-display-options > summary { cursor: pointer; color: #43536a; font-size: .85rem; }
+.timeline-display-options[open] { flex-basis: 100%; order: 1; }
+.timeline-size-controls { display: flex; flex-wrap: wrap; align-items: center; gap: 6px 14px; padding: 4px 0; }
+.timeline-size-controls label { display: flex; align-items: center; gap: 4px; margin: 0; }
+.timeline-size-controls input[type="range"] { width: 84px; padding: 0; margin: 0; }
+.timeline-size-controls output { min-width: 30px; font-size: .75rem; font-variant-numeric: tabular-nums; }
+.timeline-size-controls button { padding: 4px 8px; font-size: .75rem; }
 .selectable-timeline { display: grid; grid-template-columns: 116px minmax(0, 1fr); align-items: center; background: inherit; }
 .product-timeline-overview { border-bottom: 1px solid #cbd3df; }
 .product-timeline-overview .timeline-check { color: #172b4d; }

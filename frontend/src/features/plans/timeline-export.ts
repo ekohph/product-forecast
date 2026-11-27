@@ -1,5 +1,7 @@
 export type TimelinePrimitive = {kind: "line" | "circle" | "text"; x: number; y: number; w: number; h: number; fill: string; stroke: string; strokeWidth: number; dashed?: boolean; text?: string; fontSize?: number; bold?: boolean};
-export type TimelineImage = {dataUrl: string; width: number; height: number; heading?: string; rows?: {build: string; y: number; height: number; elements: TimelinePrimitive[]}[]};
+export type TimelineHeadingPart = {text: string; size: number};
+type PositionedHeadingPart = TimelineHeadingPart & {x: number; width: number};
+export type TimelineImage = {headingParts?: PositionedHeadingPart[]; dataUrl: string; width: number; height: number; heading?: string; rows?: {build: string; y: number; height: number; elements: TimelinePrimitive[]}[]};
 
 function editableElements(svg: SVGSVGElement): TimelinePrimitive[] {
   return Array.from(svg.querySelectorAll<SVGGraphicsElement>("line,circle,text")).map(node => {
@@ -14,7 +16,7 @@ function editableElements(svg: SVGSVGElement): TimelinePrimitive[] {
   });
 }
 
-export async function captureTimelines(root: HTMLElement, builds: string[], heading: string, rowLabels: ReadonlyMap<string, string> = new Map()): Promise<TimelineImage> {
+export async function captureTimelines(root: HTMLElement, builds: string[], heading: string, rowLabels: ReadonlyMap<string, string> = new Map(), headingParts?: TimelineHeadingPart[]): Promise<TimelineImage> {
   await document.fonts.ready;
   const exportRows = new Map(Array.from(root.querySelectorAll<HTMLElement>("[data-export-build]")).map(row => [row.dataset.exportBuild, row]));
   const rows = builds.map(key => {
@@ -63,7 +65,28 @@ export async function captureTimelines(root: HTMLElement, builds: string[], head
   const ctx = canvas.getContext("2d");
   if (!ctx) throw new Error("이미지를 생성할 수 없습니다.");
   ctx.scale(scale, scale); ctx.fillStyle = "#fafcff"; ctx.fillRect(0, 0, width, height);
-  ctx.fillStyle = "#172b4d"; ctx.font = "bold 16px sans-serif"; ctx.fillText(heading, 12, 26, width - 24);
+  ctx.fillStyle = "#172b4d";
+  const fittedHeading = headingParts?.length ? (() => {
+    const measure = ({text, size}: TimelineHeadingPart) => {
+      ctx.font = `bold ${size}px sans-serif`;
+      return ctx.measureText(text).width;
+    };
+    const naturalWidth = headingParts.reduce((sum, part) => sum + measure(part), 0);
+    const ratio = Math.min(1, (width - 26) / Math.max(1, naturalWidth));
+    let x = 12;
+    return headingParts.map(part => {
+      const fitted = {...part, size: part.size * ratio};
+      const partWidth = measure(fitted);
+      const positioned = {...fitted, x, width: partWidth};
+      ctx.fillText(fitted.text, x, 26);
+      x += partWidth;
+      return positioned;
+    });
+  })() : undefined;
+  if (!fittedHeading) {
+    ctx.font = "bold 16px sans-serif";
+    ctx.fillText(heading, 12, 26, width - 24);
+  }
   let y = 44;
   const editableRows: NonNullable<TimelineImage["rows"]> = [];
   for (const row of rows) {
@@ -78,7 +101,7 @@ export async function captureTimelines(root: HTMLElement, builds: string[], head
     } finally {URL.revokeObjectURL(url);}
     y += Math.max(36, row.height) + 8;
   }
-  return {dataUrl: canvas.toDataURL("image/png"), width, height, heading, rows: editableRows};
+  return {dataUrl: canvas.toDataURL("image/png"), width, height, heading, headingParts: fittedHeading, rows: editableRows};
 }
 
 export async function createTimelinePresentation(image: TimelineImage, title: string) {

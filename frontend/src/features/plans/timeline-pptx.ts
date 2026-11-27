@@ -22,7 +22,13 @@ export async function createEditablePresentation(image: TimelineImage, title: st
     slide.addText(value, {...box(x, y, w, h), fontFace: "Arial", fontSize: size * scale * 72, color: color(fill), bold,
       margin: 0, breakLine: false, valign: "middle", fit: "shrink", paraSpaceAfter: 0, objectName: value});
   }
-  text(image.heading || title, 12, 10, image.width - 24, 20, 16, "#172b4d", true);
+  const heading = image.headingParts;
+  if (heading?.length) {
+    for (const part of heading) text(part.text, part.x, 22 - part.size / 2, part.width + 3, part.size + 5, part.size, "#172b4d", true);
+  } else {
+    text(image.heading || title, 12, 10, image.width - 24, 20, 16, "#172b4d", true);
+  }
+  const headingCount = heading?.length || 1;
   const counts: number[] = [];
   for (const row of image.rows) {
     text(row.build, 12, row.y + Math.max(20, row.height / 2) - 14, 94, 18, 14, "#172b4d", true);
@@ -49,7 +55,7 @@ export async function createEditablePresentation(image: TimelineImage, title: st
   const zip = await JSZip.loadAsync(await pptx.write({outputType: "arraybuffer"}) as ArrayBuffer);
   const path = "ppt/slides/slide1.xml", xml = await zip.file(path)!.async("string");
   const shapes = xml.match(/<p:sp>[^]*?<\/p:sp>/g) || [];
-  if (shapes.length !== 1 + counts.reduce((sum, count) => sum + count, 0)) throw new Error("PPTX 도형 그룹을 구성하지 못했습니다.");
+  if (shapes.length !== headingCount + counts.reduce((sum, count) => sum + count, 0)) throw new Error("PPTX 도형 그룹을 구성하지 못했습니다.");
   let id = Math.max(...Array.from(xml.matchAll(/<p:cNvPr\b[^>]*\bid="(\d+)"/g), match => Number(match[1]))) + 1;
   function group(name: string, children: string, bounds: ReturnType<typeof box>) {
     const emu = (value: number) => Math.round(value * 914400);
@@ -57,8 +63,8 @@ export async function createEditablePresentation(image: TimelineImage, title: st
     const offset = `x="${emu(x)}" y="${emu(y)}"`, extent = `cx="${emu(w)}" cy="${emu(h)}"`;
     return `<p:grpSp><p:nvGrpSpPr><p:cNvPr id="${id++}" name="${escapeXml(name)}"/><p:cNvGrpSpPr/><p:nvPr/></p:nvGrpSpPr><p:grpSpPr><a:xfrm><a:off ${offset}/><a:ext ${extent}/><a:chOff ${offset}/><a:chExt ${extent}/></a:xfrm></p:grpSpPr>${children}</p:grpSp>`;
   }
-  let cursor = 1;
-  const children = shapes[0] + image.rows.map((row, index) => {
+  let cursor = headingCount;
+  const children = shapes.slice(0, headingCount).join("") + image.rows.map((row, index) => {
     const members = shapes.slice(cursor, cursor + counts[index]).join(""); cursor += counts[index];
     return group(row.build, members, box(0, row.y, image.width, Math.max(36, row.height)));
   }).join("");

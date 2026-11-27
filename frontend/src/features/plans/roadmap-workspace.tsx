@@ -6,6 +6,7 @@ import { getRoadmapMonths, type RoadmapMonth } from "./roadmap-months";
 import { PhaseEditor } from "./phase-editor";
 import { RoadmapComparison } from "./roadmap-comparison";
 import { TimelineView } from "./timeline-view";
+import { defaultTimelineSizes } from "./roadmap-timeline";
 import { RoadmapShare } from "./roadmap-share";
 import {confirmUnsavedChanges, installUnsavedNavigationGuard} from "./unsaved-changes";
 
@@ -13,6 +14,7 @@ const tabs = [{id: "view", name: "조회"}, {id: "edit", name: "편집"}, {id: "
 
 export function RoadmapWorkspace() {
   const [tab, setTab] = useState("view");
+  const [timelineSizes, setTimelineSizes] = useState(defaultTimelineSizes);
   const dirty = useRef(false);
   const onDirty = useCallback((value: boolean) => {dirty.current = value;}, []);
   const confirmLeave = useCallback(() => confirmUnsavedChanges(dirty.current, message => window.confirm(message)), []);
@@ -43,7 +45,7 @@ export function RoadmapWorkspace() {
     <RoadmapShare key={JSON.stringify([selection.product, selection.phase, selection.version])} selection={selection} ready={ready} />
     </div>
     {tabs.filter(item => item.id !== "compare").map(panel => <div key={panel.id} id={`panel-${panel.id}`} role="tabpanel" aria-labelledby={`tab-${panel.id}`} hidden={tab !== panel.id} tabIndex={0}>
-      {tab === panel.id && (panel.id === "view" ? <TimelineView key={JSON.stringify([selection.product, selection.phase, selection.version])} selection={selection} options={options} ready={ready} months={months} /> :
+      {tab === panel.id && (panel.id === "view" ? <TimelineView key={JSON.stringify([selection.product, selection.phase, selection.version])} selection={selection} options={options} ready={ready} months={months} sizes={timelineSizes} onSizes={setTimelineSizes} /> :
         <PhaseEditor key={JSON.stringify([selection.product, selection.phase, selection.version])} selection={selection} options={options} ready={ready} months={months} onSelect={select} onDirty={onDirty} onManageBuilds={manageBuilds} />)}
     </div>)}
     <div id="panel-compare" role="tabpanel" aria-labelledby="tab-compare" hidden={tab !== "compare"} tabIndex={0}>
