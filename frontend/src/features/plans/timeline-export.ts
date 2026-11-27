@@ -14,10 +14,12 @@ function editableElements(svg: SVGSVGElement): TimelinePrimitive[] {
   });
 }
 
-export async function captureTimelines(root: HTMLElement, builds: string[], heading: string): Promise<TimelineImage> {
+export async function captureTimelines(root: HTMLElement, builds: string[], heading: string, rowLabels: ReadonlyMap<string, string> = new Map()): Promise<TimelineImage> {
   await document.fonts.ready;
-  const rows = builds.map(build => {
-    const row = Array.from(root.querySelectorAll<HTMLElement>("[data-export-build]")).find(row => row.dataset.exportBuild === build);
+  const exportRows = new Map(Array.from(root.querySelectorAll<HTMLElement>("[data-export-build]")).map(row => [row.dataset.exportBuild, row]));
+  const rows = builds.map(key => {
+    const build = rowLabels.get(key) ?? key;
+    const row = exportRows.get(key);
     const svg = row?.querySelector("svg");
     if (!svg) throw new Error(`${build}: 타임라인을 불러온 뒤 다시 시도하세요. 표시할 월이 없는 표는 내보낼 수 없습니다.`);
     const bounds = svg.getBoundingClientRect();
@@ -52,7 +54,7 @@ export async function captureTimelines(root: HTMLElement, builds: string[], head
     copy.setAttribute("width", String(bounds.width)); copy.setAttribute("height", String(bounds.height + offset));
     return {build, width: bounds.width, height: bounds.height + offset, elements, xml: new XMLSerializer().serializeToString(copy)};
   });
-  if (!rows.length) throw new Error("다운로드할 Build를 선택하세요.");
+  if (!rows.length) throw new Error("다운로드할 타임라인을 선택하세요.");
   const width = Math.ceil(Math.max(...rows.map(row => row.width)) + 120);
   const height = Math.ceil(48 + rows.reduce((total, row) => total + Math.max(36, row.height) + 8, 0));
   const scale = Math.min(2, 16000 / Math.max(width, height), Math.sqrt(32000000 / (width * height)));

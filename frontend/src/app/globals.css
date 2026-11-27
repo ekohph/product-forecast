@@ -97,6 +97,8 @@ form + h3 { margin-top: 28px; }
 .roadmap-heading.view-heading { justify-content: flex-start; gap: 12px; }
 .timeline-download { margin-left: auto; }
 .selectable-timeline { display: grid; grid-template-columns: 116px minmax(0, 1fr); align-items: center; background: inherit; }
+.product-timeline-overview { border-bottom: 1px solid #cbd3df; }
+.product-timeline-overview .timeline-check { color: #172b4d; }
 .timeline-check { display: flex; flex-direction: row; align-items: center; gap: 6px; padding: 4px 8px; margin: 0; font-weight: 600; font-size: .85rem; overflow-wrap: anywhere; }
 .timeline-check input[type="checkbox"] { width: 16px; height: 16px; margin: 0; flex-shrink: 0; }
 .timeline-check-all { justify-self: start; cursor: pointer; }
