@@ -1,10 +1,13 @@
 import type { Metadata } from "next";
+import { notFound } from "next/navigation";
+import { standaloneChatEnabled } from "@/lib/features";
 import { ProductShell } from "@/components/product-shell";
 import { ChatComposer } from "@/features/chat/chat-composer";
 
 export const metadata: Metadata = {title: "Chat | Product Forecast"};
 
 export default function ChatPage() {
+  if (!standaloneChatEnabled) notFound();
   return <ProductShell active="chat">
     <div className="chat-page">
       <p className="eyebrow">Product Forecast</p>

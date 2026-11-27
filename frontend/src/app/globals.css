@@ -249,3 +249,21 @@ form + h3 { margin-top: 28px; }
 .chat-compose-actions .chat-add-image { width: 31px; padding: 0; height: 31px; font-size: 1.15rem; line-height: 1; }
 .chat-sent-images { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
 .chat-sent-images img { display: block; max-width: min(320px, 100%); max-height: 170px; object-fit: contain; border-radius: 6px; }
+.phase-edit-layout { display: grid; grid-template-columns: minmax(0, 1fr); }
+.phase-edit-roadmaps { min-width: 0; }
+.phase-edit-with-chat { grid-template-columns: minmax(0, 1fr) minmax(285px, 335px); gap: 14px; align-items: start; }
+.roadmap-edit-chat { min-width: 0; position: sticky; top: 12px; margin-top: 24px; padding: 12px; border: 1px solid #d4ddeb; border-radius: 10px; background: #f8faff; }
+.roadmap-edit-chat-header { display: flex; align-items: center; justify-content: space-between; gap: 6px; }
+.roadmap-edit-chat-header h3 { margin: 0; font-size: 1rem; }
+.roadmap-edit-chat-header button { padding: 5px 8px; font-size: .8rem; }
+.roadmap-edit-chat-context { margin: 8px 0 3px; font-size: .8rem; font-weight: 700; overflow-wrap: anywhere; }
+.roadmap-edit-chat-note { margin: 0 0 10px; color: #4b5d76; font-size: .76rem; }
+.roadmap-edit-chat .chat-transcript { min-height: 115px; max-height: 38vh; padding: 8px; }
+.roadmap-edit-chat .chat-empty { padding: 20px 4px; }
+.roadmap-edit-chat .chat-empty h2 { font-size: .95rem; }
+.roadmap-edit-chat .chat-empty p { font-size: .8rem; }
+.roadmap-edit-chat .chat-compose-actions p { flex-basis: 100%; order: 1; }
+@media (max-width: 1000px) {
+  .phase-edit-with-chat { grid-template-columns: minmax(0, 1fr); }
+  .roadmap-edit-chat { position: static; margin-top: 0; }
+}
