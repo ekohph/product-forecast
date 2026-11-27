@@ -5,26 +5,16 @@ import type { RoadmapCatalog, RoadmapIdentity, RoadmapRecord } from "@/types/roa
 import type { RoadmapMonth } from "./roadmap-months";
 import { getRoadmap } from "@/lib/api";
 import { buildProductTimeline } from "./product-timeline";
-import { RoadmapTimeline, defaultTimelineSizes, type TimelineSizes } from "./roadmap-timeline";
+import { RoadmapTimeline, type TimelineSizes } from "./roadmap-timeline";
 import { sortRoadmapItems } from "./roadmap-items";
-import { captureTimelines, downloadTimeline, type TimelineImage } from "./timeline-export";
-
-const sizeControls = [
-  {key: "circle", label: "마일스톤 원", min: 6, max: 22},
-  {key: "date", label: "날짜 글자", min: 8, max: 20},
-  {key: "phase", label: "Phase 글자", min: 10, max: 24},
-  {key: "item", label: "항목 글자", min: 8, max: 20},
-] as const;
+import { TimelineDisplayOptions, TimelineDownload } from "./timeline-controls";
 
 export function TimelineView({selection, options, ready, months, sizes, onSizes}: {
   selection: RoadmapIdentity; options: RoadmapCatalog; ready: boolean; months: RoadmapMonth[];
   sizes: TimelineSizes; onSizes: (sizes: TimelineSizes) => void;
 }) {
   const [checked, setChecked] = useState<string[]>([]);
-  const [preview, setPreview] = useState<TimelineImage | null>(null);
-  const [busy, setBusy] = useState(false);
-  const [error, setError] = useState("");
-  const root = useRef<HTMLDivElement>(null), dialog = useRef<HTMLDialogElement>(null);
+  const root = useRef<HTMLDivElement>(null);
   const [overviewChecked, setOverviewChecked] = useState(false);
   const [attempt, setAttempt] = useState(0);
   const [load, setLoad] = useState<{key: string; results: Map<string, {record?: RoadmapRecord; error?: string}>} | null>(null);
@@ -58,31 +48,12 @@ export function TimelineView({selection, options, ready, months, sizes, onSizes}
   const partiallyChecked = builds.length > 0 && !allChecked;
   const exportKeys = [...(overviewReady && overviewChecked ? [overviewKey] : []), ...builds.map(buildRowKey)];
   const exportLabels = new Map([[overviewKey, product], ...builds.map(build => [buildRowKey(build), build] as const)]);
-  const heading = `${product} · ${phase} · Version ${version}`;
   const valid = ready && product && phase && version && months.length;
   return <>
     <div className="roadmap-heading view-heading"><h2>{product || "제품 없음"}</h2><span className="timeline-phase" style={{fontSize: sizes.phase}}>{phase || "Phase 없음"}</span><span>· Version {version}</span>
-      <details className="timeline-display-options">
-        <summary>표시 크기</summary>
-        <div className="timeline-size-controls">
-          {sizeControls.map(({key, label, min, max}) => <label key={key}>
-            <span>{label}</span>
-            <input type="range" aria-label={label} min={min} max={max} value={sizes[key]}
-              onChange={event => onSizes({...sizes, [key]: Number(event.currentTarget.value)})} />
-            <output>{sizes[key]} px</output>
-          </label>)}
-          <button type="button" onClick={() => onSizes(defaultTimelineSizes)}>기본값</button>
-        </div>
-      </details>
-      <button type="button" className="timeline-download" disabled={!valid || !exportKeys.length || busy} onClick={async () => {
-        if (!root.current || !exportKeys.length) return;
-        setError(""); setPreview(null); setBusy(true); dialog.current?.showModal();
-        try {setPreview(await captureTimelines(root.current, exportKeys, heading, exportLabels, [
-          {text: product + " · ", size: 16}, {text: phase, size: sizes.phase}, {text: " · Version " + version, size: 16},
-        ]));}
-        catch (reason) {setError(reason instanceof Error ? reason.message : "미리보기를 만들지 못했습니다.");}
-        finally {setBusy(false);}
-      }}>Download</button>
+      <TimelineDisplayOptions sizes={sizes} onSizes={onSizes} />
+      <TimelineDownload root={root} selected={exportKeys} labels={exportLabels} title={product}
+        phase={phase} version={version} phaseSize={sizes.phase} disabled={!valid} />
     </div>
     {!valid ? <p role="status">제품·Phase·Version과 저장소 연결을 확인해 주세요.</p> : !options.build.length ? <p role="status">Build를 추가해 주세요.</p> : <div ref={root} className="build-timelines">
       <div data-export-build={overviewKey} className="selectable-timeline product-timeline-overview">
@@ -114,21 +85,5 @@ export function TimelineView({selection, options, ready, months, sizes, onSizes}
         </div>;
       })}
     </div>}
-    <dialog ref={dialog} className="option-dialog timeline-download-dialog" aria-labelledby="timeline-download-title" onCancel={event => {if (busy) event.preventDefault();}}>
-      <div className="option-dialog-header"><h2 id="timeline-download-title">타임라인 다운로드</h2><button type="button" disabled={busy} onClick={() => dialog.current?.close()}>닫기</button></div>
-      {busy && <p role="status">파일을 준비하고 있습니다.</p>}
-      {error && <p role="alert" className="error">{error}</p>}
-      {preview && <img className="timeline-download-preview" src={preview.dataUrl} alt="선택된 타임라인 다운로드 미리보기" />}
-      <div className="comparison-actions">
-        {(["png", "pptx"] as const).map(format => <button key={format} type="button" disabled={!preview || busy} onClick={async () => {
-          if (!preview || busy) return;
-          setBusy(true); setError("");
-          try {await downloadTimeline(preview, format, `Product Forecast ${heading}`);}
-          catch (reason) {setError(reason instanceof Error ? reason.message : "다운로드에 실패했습니다.");}
-          finally {setBusy(false);}
-        }}>{format.toUpperCase()} 다운로드</button>)}
-        <span className="overlay-note">PPTX는 도형·텍스트를 편집할 수 있으며, 전체와 타임라인별로 그룹화됩니다.</span>
-      </div>
-    </dialog>
   </>;
 }

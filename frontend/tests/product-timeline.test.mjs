@@ -37,3 +37,16 @@ test("uses the fallback scale for empty schedules and does not turn milestones i
   assert.equal(new Set(summary.items.map(item => item.id)).size, 2);
   assert.deepEqual(summary.items.map(item => [item.startDate, item.content]), [["2027-01-16", "Review"], ["2027-01-16", "Review"]]);
 });
+
+test("products with different stored months can use one calendar scale without changing coverage", async () => {
+  const {sharedTimelineMonths} = await import("../src/features/plans/product-timeline.ts");
+  const left = [{build: "POC", months: [jan, feb], items: [range("left", "2027-02-10", "2027-02-15")]}];
+  const right = [{build: "EVT", months: [feb, mar], items: [range("right", "2027-02-10", "2027-02-18")]}];
+  const shared = sharedTimelineMonths([mar, feb, jan, feb], []);
+  assert.deepEqual(shared, [jan, feb, mar]);
+  const views = [left, right, []].map(s => buildProductTimeline(s, [], shared));
+  assert.ok(views.every(view => view.months === shared));
+  assert.deepEqual(views.map(view => windows(view.items)), [
+    [["2027-02-10", "2027-02-15"]], [["2027-02-10", "2027-02-18"]], [],
+  ]);
+});

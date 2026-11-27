@@ -15,11 +15,11 @@ const categories: { key: Category; title: string; addLabel: string }[] = [
   { key: "version", title: "Version", addLabel: "(Version 편집)" },
 ];
 
-export function SelectionBar({children, initialSelection, availableOptions, idPrefix = "select", confirmLeave, sharedLink = false}: {
+export function SelectionBar({children, initialSelection, availableOptions, idPrefix = "select", confirmLeave, sharedLink = false, omitProduct = false}: {
   children?: (selection: Record<Category, string>, options: Record<Category, string[]>, ready: boolean, select: (patch: Partial<Record<Category, string>>) => void, manageBuilds: () => void) => ReactNode;
   initialSelection?: Record<Category, string>; availableOptions?: Record<Category, string[]>; idPrefix?: string;
   confirmLeave?: () => boolean;
-  sharedLink?: boolean;
+  sharedLink?: boolean; omitProduct?: boolean;
 }) {
   const [options, setOptions] = useState<Record<Category, string[]>>({
     product: ["4175"], build: ["P1", "EVT", "DVT"], phase: ["Plan", "내부 협의 완료", "고객 협의 완료"],
@@ -107,9 +107,9 @@ export function SelectionBar({children, initialSelection, availableOptions, idPr
     return () => window.removeEventListener("roadmap-version-deleted", deleted);
   }, [selection.phase, options.version]);
 
-  return <><section className="selection-panel" aria-label="제품 Phase Version 선택">
-    <div className="selection-bar">
-      {categories.filter(item => item.key !== "build").map(item => <label key={item.key} htmlFor={`${idPrefix}-${item.key}`}>
+  return <><section className="selection-panel" aria-label={omitProduct ? "공통 Phase Version 선택" : "제품 Phase Version 선택"}>
+    <div className={`selection-bar${omitProduct ? " portfolio-selection" : ""}`}>
+      {categories.filter(item => item.key !== "build" && (!omitProduct || item.key !== "product")).map(item => <label key={item.key} htmlFor={`${idPrefix}-${item.key}`}>
         <span>{item.title}</span>
         <select id={`${idPrefix}-${item.key}`} disabled={!ready || (item.key === "build" && (buildProduct !== selection.product || !selection.product)) || (item.key === "version" && (!versionsReady || !selection.phase))} value={selection[item.key]} onChange={event => {
           const value = event.target.value;
@@ -128,7 +128,7 @@ export function SelectionBar({children, initialSelection, availableOptions, idPr
     {!ready && !loadError && <p className="roadmap-action-status" role="status">저장된 제품·버전 목록을 불러오고 있습니다.</p>}
     {loadError && <div className="error" role="alert">{loadError} <button type="button" onClick={() => setAttempt(current => current + 1)}>다시 시도</button></div>}
     {versionError && <div className="error" role="alert">{versionError} <button type="button" onClick={() => setAttempt(current => current + 1)}>다시 시도</button></div>}
-    {buildError && <div className="error" role="alert">{buildError}<button type="button" onClick={() => setAttempt(value => value + 1)}>다시 시도</button></div>}
+    {!omitProduct && buildError && <div className="error" role="alert">{buildError}<button type="button" onClick={() => setAttempt(value => value + 1)}>다시 시도</button></div>}
     {managing === "build" && <BuildManager key={selection.product} product={selection.product} items={options.build} confirmLeave={confirmLeave}
       onClose={() => {setManaging(null); document.getElementById("edit-build-manager")?.focus();}}
       onChange={(builds, renamed, added) => {
@@ -151,7 +151,7 @@ export function SelectionBar({children, initialSelection, availableOptions, idPr
         setSelection(current => ({...current, [category.key]: added ??
           (renamed && current[category.key] === renamed.old ? renamed.name : current[category.key])}));
       }} />}
-  </section>{children?.(selection, options, ready && versionsReady && buildProduct === selection.product, patch => setSelection(current => ({...current, ...patch})), () => setManaging("build"))}</>;
+  </section>{children?.(selection, options, ready && versionsReady && (omitProduct || buildProduct === selection.product), patch => setSelection(current => ({...current, ...patch})), () => setManaging("build"))}</>;
 }
 
 function OptionManager({ title, items, onClose, onSave, allowDelete, onDelete, versionMode, phase, selectedVersion, confirmLeave, productMode }: {

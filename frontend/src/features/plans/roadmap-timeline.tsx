@@ -9,7 +9,7 @@ export const defaultTimelineSizes = {circle: 16, date: 12, phase: 16, item: 12};
 export type TimelineSizes = typeof defaultTimelineSizes;
 const uncustomizedTimelineSizes: TimelineSizes = {...defaultTimelineSizes, circle: 12};
 
-export function RoadmapTimeline({months, items, build, compact = false, showBuildLabel = true, sizes = uncustomizedTimelineSizes}: {months: RoadmapMonth[]; items: RoadmapItem[]; build: string; compact?: boolean; showBuildLabel?: boolean; sizes?: TimelineSizes}) {
+export function RoadmapTimeline({months, items, build, compact = false, showBuildLabel = true, sizes = uncustomizedTimelineSizes, emptyLabel = "표시할 일정이 없습니다."}: {months: RoadmapMonth[]; items: RoadmapItem[]; build: string; compact?: boolean; showBuildLabel?: boolean; sizes?: TimelineSizes; emptyLabel?: string}) {
   const container = useRef<HTMLDivElement>(null);
   const [width, setWidth] = useState(600);
   const [today, setToday] = useState("");
@@ -99,7 +99,7 @@ export function RoadmapTimeline({months, items, build, compact = false, showBuil
           <text x={center} y={namesY + rangeNames[index] * nameStep} textAnchor="middle" className="timeline-item-name" style={{fontSize: sizes.item}}>{name}</text>
         </g>;
       })}
-      {compact && !ticks.length && <text x={inset} y={lineY + nameOffset} className="timeline-empty">표시할 일정이 없습니다.</text>}
+      {compact && !ticks.length && <text x={inset} y={lineY + nameOffset} className="timeline-empty">{emptyLabel}</text>}
     </svg></div>
     {compact && showBuildLabel && <h3 className="timeline-build-name" style={{marginTop: lineY - 9}} title={build}>{build}</h3>}
   </div>;

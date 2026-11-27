@@ -1,11 +1,11 @@
 import { monthRange, type RoadmapItem } from "./roadmap-items.ts";
 import { shiftMonth, type RoadmapMonth } from "./roadmap-months.ts";
 
-type BuildSchedule = {build: string; months: RoadmapMonth[]; items: RoadmapItem[]};
+export type BuildSchedule = {build: string; months: RoadmapMonth[]; items: RoadmapItem[]};
 const days = (date: string) => Date.parse(date + "T00:00:00Z") / 86400000;
 
-export function buildProductTimeline(schedules: BuildSchedule[], fallbackMonths: RoadmapMonth[]) {
-  const storedMonths = schedules.flatMap(schedule => schedule.months).sort((a, b) => a.key.localeCompare(b.key));
+export function sharedTimelineMonths(allMonths: RoadmapMonth[], fallbackMonths: RoadmapMonth[]) {
+  const storedMonths = [...allMonths].sort((a, b) => a.key.localeCompare(b.key));
   const first = storedMonths[0], last = storedMonths.at(-1);
   const months: RoadmapMonth[] = [];
   if (first && last) {
@@ -19,6 +19,11 @@ export function buildProductTimeline(schedules: BuildSchedule[], fallbackMonths:
     months.push(...fallbackMonths);
   }
 
+  return months;
+}
+
+export function buildProductTimeline(schedules: BuildSchedule[], fallbackMonths: RoadmapMonth[], sharedMonths?: RoadmapMonth[]) {
+  const months = sharedMonths ?? sharedTimelineMonths(schedules.flatMap(schedule => schedule.months), fallbackMonths);
   // Clip against each Build's saved month columns; a removed month must not
   // create coverage after the view switches to a continuous shared axis.
   const milestones: RoadmapItem[] = [];
