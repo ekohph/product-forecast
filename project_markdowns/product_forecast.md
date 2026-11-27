@@ -359,3 +359,5 @@ Python 3.12를 설치하고 README의 표준 venv 절차를 따른다.
 
 - 앱 사이드바에 Product Forecast와 Chat을 표시한다. 기존 로드맵 주소, 쿼리 기반 공유 링크와 API는 유지하고 Chat은 `/product-forecast/chat`에 둔다. 좁은 화면에서는 두 메뉴를 상단에 표시한다.
 - Chat은 ProseMirror 기반의 평문 입력 테스트다. 붙여넣기, 실행 취소, Enter 전송과 Shift+Enter 줄바꿈, 한글 IME 조합 확인 Enter의 오전송 방지를 지원한다. 전송 문자열은 화면에만 표시되고 새로고침이나 이동 시 사라진다. LLM·외부 API·DB·메시지 자동 응답은 없다.
+
+- Chat의 **+**는 파일 선택을 열고, 편집기에서 Ctrl+V로 이미지 파일을 붙여넣는다. 이미지 미리보기 제거, 이미지 단독 및 텍스트와 함께 전송을 지원한다. PNG/JPEG/WebP/GIF/BMP/AVIF만, 최대 4장과 이미지당 8 MB를 허용한다. 브라우저 object URL은 제거하거나 화면을 닫을 때 해제한다. 파일 업로드·서버 저장·드래그앤드롭은 이번 범위가 아니다.

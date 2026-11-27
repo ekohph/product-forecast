@@ -8,6 +8,7 @@ import { baseKeymap, splitBlock } from "prosemirror-commands";
 import { keymap } from "prosemirror-keymap";
 import { history, redo, undo } from "prosemirror-history";
 import { isComposingEnter } from "./composer-keys";
+import { chatImageIssue, chatImageTypes, clipboardImageFiles, maxChatImages } from "./chat-images";
 
 const schema = new Schema({
   nodes: {
@@ -22,19 +23,53 @@ const asText = (doc: Node) => doc.textBetween(0, doc.content.size, "\n");
 const documentFor = (text: string) => schema.node("doc", null, text.split(/\r\n?|\n/).map(line =>
   schema.node("paragraph", null, line ? schema.text(line) : undefined)));
 
+type Attachment = {url: string; name: string};
+type ChatMessage = {text: string; images: Attachment[]};
+
 export function ChatComposer() {
   const mount = useRef<HTMLDivElement>(null);
   const viewRef = useRef<EditorView | null>(null);
   const justComposedEnter = useRef(false);
-  const [messages, setMessages] = useState<string[]>([]);
+  const picker = useRef<HTMLInputElement>(null);
+  const draftImages = useRef<Attachment[]>([]);
+  const objectUrls = useRef(new Set<string>());
+  const [images, setImages] = useState<Attachment[]>([]);
+  const [imageError, setImageError] = useState("");
+  const [messages, setMessages] = useState<ChatMessage[]>([]);
   const [hasText, setHasText] = useState(false);
   const [ready, setReady] = useState(false);
+
+  function addImages(files: File[]) {
+    if (!files.length) return;
+    const next = [...draftImages.current];
+    let error = "";
+    for (const file of files) {
+      const problem = chatImageIssue(file);
+      if (problem) {error ||= problem; continue;}
+      if (next.length >= maxChatImages) {error ||= "메시지 하나에 이미지를 최대 4장까지 첨부할 수 있습니다."; break;}
+      const url = URL.createObjectURL(file);
+      objectUrls.current.add(url);
+      next.push({url, name: file.name || "붙여넣은 이미지"});
+    }
+    draftImages.current = next;
+    setImages(next);
+    setImageError(error);
+  }
+  function removeImage(url: string) {
+    draftImages.current = draftImages.current.filter(image => image.url !== url);
+    setImages(draftImages.current);
+    if (objectUrls.current.delete(url)) URL.revokeObjectURL(url);
+  }
 
   function submit(view: EditorView) {
     if (view.composing) return;
     const text = asText(view.state.doc).trim();
-    if (!text) return;
-    setMessages(items => [...items, text]);
+    const attachments = draftImages.current;
+    if (!text && !attachments.length) return;
+    setMessages(items => [...items, {text, images: attachments}]);
+    draftImages.current = [];
+    setImages([]);
+    setImageError("");
     // A new message is a new history, so Undo does not resurrect sent text.
     view.updateState(createState());
     setHasText(false);
@@ -61,6 +96,7 @@ export function ChatComposer() {
         paste(editor, event) {
           const text = event.clipboardData?.getData("text/plain") ?? "";
           event.preventDefault();
+          if (event.clipboardData) addImages(clipboardImageFiles(event.clipboardData));
           if (text) editor.dispatch(editor.state.tr.replaceSelection(Slice.maxOpen(documentFor(text).content)).scrollIntoView());
           return true;
         },
@@ -80,18 +116,44 @@ export function ChatComposer() {
     });
     viewRef.current = view;
     setReady(true);
-    return () => {viewRef.current = null; view.destroy();};
+    const urls = objectUrls.current;
+    return () => {
+      viewRef.current = null;
+      view.destroy();
+      urls.forEach(url => URL.revokeObjectURL(url));
+      urls.clear();
+    };
   }, []);
 
   return <section className="chat-demo" aria-label="메시지 입력 테스트">
     <div className="chat-transcript" role="log" aria-live="polite" aria-label="이 화면에서 입력한 메시지">
       {messages.length ? <ol>
-        {messages.map((message, i) => <li key={i}><span>내 입력</span><p>{message}</p></li>)}
+        {messages.map((message, i) => <li key={i}><span>내 입력</span>
+          {message.text && <p>{message.text}</p>}
+          {!!message.images.length && <div className="chat-sent-images">
+            {message.images.map(image => <img key={image.url} src={image.url} alt={image.name} />)}
+          </div>}
+        </li>)}
       </ol> : <div className="chat-empty"><h2>입력 테스트</h2><p>예시 문장을 넣거나 직접 입력해 보세요.</p></div>}
     </div>
     <div className="chat-compose-card">
+      {!!images.length && <ul className="chat-image-previews" aria-label="첨부 이미지 미리보기">
+        {images.map((image, index) => <li key={image.url}>
+          <img src={image.url} alt={image.name} onError={() => {removeImage(image.url); setImageError("이 이미지 파일을 열 수 없습니다.");}} />
+          <button type="button" onClick={() => {removeImage(image.url); setImageError("");}}
+            aria-label={`첨부 이미지 ${index + 1} 삭제`} title={image.name + " 삭제"}>×</button>
+        </li>)}
+      </ul>}
+      {imageError && <p role="alert" className="chat-image-error">{imageError}</p>}
       <div className="chat-editor" ref={mount} />
       <div className="chat-compose-actions">
+        <input ref={picker} type="file" multiple hidden accept={chatImageTypes.join(",")} onChange={event => {
+          addImages(Array.from(event.currentTarget.files ?? []));
+          event.currentTarget.value = "";
+          viewRef.current?.focus();
+        }} />
+        <button type="button" className="secondary-button chat-add-image" aria-label="이미지 추가"
+          title="이미지 추가" disabled={!ready} onClick={() => picker.current?.click()}>+</button>
         <button type="button" className="secondary-button" disabled={!ready || hasText} onClick={() => {
           const view = viewRef.current;
           if (!view || view.composing) return;
@@ -99,8 +161,8 @@ export function ChatComposer() {
           view.dispatch(view.state.tr.replaceWith(0, view.state.doc.content.size, doc.content));
           view.focus();
         }}>예시 문장 넣기</button>
-        <p id="chat-key-hint">Enter 전송 · Shift+Enter 줄바꿈</p>
-        <button type="button" disabled={!hasText} onClick={() => {if (viewRef.current) submit(viewRef.current);}}>전송</button>
+        <p id="chat-key-hint">Enter 전송 · Shift+Enter 줄바꿈 · Ctrl+V 이미지 붙여넣기</p>
+        <button type="button" disabled={!hasText && !images.length} onClick={() => {if (viewRef.current) submit(viewRef.current);}}>전송</button>
       </div>
     </div>
   </section>;

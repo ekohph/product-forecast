@@ -241,3 +241,11 @@ form + h3 { margin-top: 28px; }
   .product-sidebar { border-right: 0; border-bottom: 1px solid #dbe4ef; }
   .product-sidebar nav { position: static; display: flex; padding: 6px 12px; }
 }
+.chat-image-previews { display: flex; flex-wrap: wrap; gap: 10px; list-style: none; margin: 0 0 8px; padding: 0; }
+.chat-image-previews li { position: relative; }
+.chat-image-previews img { display: block; width: 72px; height: 60px; object-fit: contain; border: 1px solid #d4ddeb; border-radius: 7px; background: #f3f6fb; }
+.chat-image-previews button { position: absolute; top: 2px; right: 2px; padding: 0; width: 22px; height: 22px; border-radius: 50%; background: #172b4d; color: white; line-height: 1; }
+.chat-image-error { color: #9a291b; font-size: .85rem; margin: 0 0 8px; }
+.chat-compose-actions .chat-add-image { width: 31px; padding: 0; height: 31px; font-size: 1.15rem; line-height: 1; }
+.chat-sent-images { display: flex; flex-wrap: wrap; gap: 6px; margin-top: 7px; }
+.chat-sent-images img { display: block; max-width: min(320px, 100%); max-height: 170px; object-fit: contain; border-radius: 6px; }
